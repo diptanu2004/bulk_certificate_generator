@@ -7,6 +7,8 @@ background; the client polls the job for progress and downloads the results.
 - **Stack:** Python 3.12 · FastAPI · PostgreSQL · SQLAlchemy 2.0 · ReportLab
 - **Queue:** PostgreSQL `SELECT … FOR UPDATE SKIP LOCKED` — no broker
 - **Shape:** one codebase, two deployables (`api`, `worker`), two tables
+- **CI:** GitHub Actions — full suite on SQLite, plus the queue tests against a live
+  PostgreSQL service container
 
 ---
 
@@ -58,7 +60,17 @@ docker compose up -d db
 TEST_DATABASE_URL=postgresql+psycopg://certgen:certgen@localhost:5432/certgen pytest -m postgres
 ```
 
-Both paths run in CI on every push — see [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+### Continuous integration
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push to `main` and on
+every pull request, as two jobs:
+
+| Job | What it runs |
+| --- | --- |
+| `tests` | The whole suite on SQLite. No services, so it needs no infrastructure. |
+| `queue-tests` | Starts a `postgres:16-alpine` service container and runs `pytest -m postgres`, so the `SKIP LOCKED` guarantee is **verified in CI rather than asserted in prose**. |
+
+Both jobs install the project with `pip install -e ".[dev]"` on Python 3.12.
 
 ---
 
