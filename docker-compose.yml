@@ -1,0 +1,43 @@
+# One codebase, two deployables: `api` serves HTTP, `worker` renders PDFs.
+# Scale generation throughput with `docker compose up --scale worker=4`.
+
+x-app: &app
+  build: .
+  environment:
+    DATABASE_URL: postgresql+psycopg://certgen:certgen@db:5432/certgen
+    STORAGE_DIR: /srv/storage
+  volumes:
+    - certificates:/srv/storage
+  depends_on:
+    db:
+      condition: service_healthy
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: certgen
+      POSTGRES_PASSWORD: certgen
+      POSTGRES_DB: certgen
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U certgen"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    <<: *app
+    ports:
+      - "8000:8000"
+
+  worker:
+    <<: *app
+    command: ["python", "-m", "app.worker"]
+
+volumes:
+  pgdata:
+  certificates:

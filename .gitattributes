@@ -1,0 +1,4 @@
+# Normalise to LF in the repository: the app is built and run in Linux containers.
+* text=auto eol=lf
+*.png binary
+*.pdf binary
